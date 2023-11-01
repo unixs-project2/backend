@@ -22,9 +22,11 @@ export class InserirFluxo {
       }     
       
       // Se o 'paiId' é diferente de 'null' então esse fluxo que está sendo inserido é um fluxo filho e deve ser cadastrado como tal na tabela 'fluxosfilhos'
+      let fluxoPai: IFluxo | null;
       if (paiId !== null) {
 				//1° deve procurar se o fluxo Pai já existe (se existe uma 'id' em 'fluxos' que corresponde ao valor de paiId):
-				const fluxoPai: IFluxo | null = await prismaClient.fluxo.findUnique({
+				//const fluxoPai: IFluxo | null = await prismaClient.fluxo.findUnique({
+				fluxoPai = await prismaClient.fluxo.findUnique({
 				where: { id: paiId },
 				});
 				
@@ -40,37 +42,27 @@ export class InserirFluxo {
 		      });
 		      return;
 		    }
+			}
 		    
-		    // E finalmente cria o fluxo propriamente dito
-				const fluxo: IFluxo | null = await prismaClient.fluxo.create({
-	        data: {
-	          titulo,
-	          paiId,
-	          html,
-	        },
-	      });
-	      
-	      console.log("Id do Fluxo inserido ="+fluxo.id); // Debug
-		    
-		    //2° agora se existe o fluxo Pai pode criar um fluxo com o fluxo Pai determinado:
-				const fluxofilho: IFluxoFilho | null = await prismaClient.fluxofilho.create({
+	    // E finalmente cria o fluxo propriamente dito
+			const fluxo: IFluxo | null = await prismaClient.fluxo.create({
         data: {
-          id_fluxo_pai: paiId,
-					id_fluxo_filho: fluxo.id, // Usa a 'id' do fluxo recém-criado para atualizar como id do filho
+          titulo,
+          paiId,
+          html,
         },
       });
-			}
-			else {
-				// E finalmente cria o fluxo propriamente dito
-				const fluxo: IFluxo | null = await prismaClient.fluxo.create({
-	        data: {
-	          titulo,
-	          paiId,
-	          html,
-	        },
-	      });
-	      
-	      console.log("Id do Fluxo inserido ="+fluxo.id); // Debug
+      
+      console.log("Id do Fluxo inserido ="+fluxo.id); // Debug
+		    
+	   //2° agora, se existe o fluxo Pai, deve criar uma relação entre o fluxo Filho e o fluxo Pai:
+			if (fluxoPai) {
+				const fluxofilho: IFluxoFilho | null = await prismaClient.fluxofilho.create({
+					data: {
+						id_fluxo_pai: paiId,
+						id_fluxo_filho: fluxo.id, // Usa a 'id' do fluxo recém-criado para atualizar como id do filho
+					},
+				});
 			}
 
       res
